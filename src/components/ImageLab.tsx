@@ -6,12 +6,13 @@ import { CalculationPanel } from './CalculationPanel'
 import { HistogramPlot } from './HistogramPlot'
 import { ImageCanvas } from './ImageCanvas'
 import { KernelExplorer } from './KernelExplorer'
+import { LessonNavigator } from './LessonNavigator'
 import { MathFormula } from './MathFormula'
 import { NeighborhoodExplorer } from './NeighborhoodExplorer'
 import { TechniqueControls } from './TechniqueControls'
 import { createDemoImage } from '@/lib/demoImage'
 import { buildPixelExplanation } from '@/lib/explain'
-import { LESSONS, lessonById } from '@/lib/lessons'
+import { lessonById } from '@/lib/lessons'
 import { DEFAULT_SETTINGS, getPixel, kernelForTechnique, type InspectChannel, type PipelineStep, type PixelBuffer, type ProcessingSettings, type TechniqueId } from '@/lib/imageProcessing'
 import { useProcessingWorker } from '@/hooks/useProcessingWorker'
 
@@ -38,7 +39,7 @@ export function ImageLab() {
   const [point, setPoint] = useState({ x: 382, y: 122 })
   const [inspectChannel, setInspectChannel] = useState<InspectChannel>('r')
   const [steps, setSteps] = useState<PipelineStep[]>([])
-  const [lessonDrawer, setLessonDrawer] = useState(false)
+  const [lessonMenuOpen, setLessonMenuOpen] = useState(false)
   const [toast, setToast] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const lesson = lessonById(technique)
@@ -59,7 +60,7 @@ export function ImageLab() {
 
   const chooseLesson = (id: TechniqueId) => {
     setTechnique(id)
-    setLessonDrawer(false)
+    setLessonMenuOpen(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -116,7 +117,7 @@ export function ImageLab() {
       <aside className="rail" aria-label="Application sections">
         <a className="rail-brand" href="#top"><span>IMAGE</span><b>LAB</b><i /></a>
         <nav>
-          <a className="active" href="#lessons"><BookOpen size={19} /><span>Lessons</span></a>
+          <button className="active" type="button" aria-expanded={lessonMenuOpen} aria-controls="lesson-curriculum" onClick={() => setLessonMenuOpen((current) => !current)}><BookOpen size={19} /><span>Lessons</span></button>
           <a href="#pipeline"><Layers3 size={19} /><span>Pipeline</span></a>
           <a href="#calculation"><FlaskConical size={19} /><span>Math</span></a>
         </nav>
@@ -129,10 +130,11 @@ export function ImageLab() {
           <div className="header-actions">
             <button onClick={() => inputRef.current?.click()}><Upload size={16} /> Upload</button>
             <button onClick={download}><Download size={16} /> Export</button>
-            <button className="lesson-menu-button" onClick={() => setLessonDrawer(true)}><BookOpen size={16} /> Lessons</button>
             <input ref={inputRef} type="file" accept="image/*" hidden onChange={(event) => { upload(event.target.files?.[0]); event.currentTarget.value = '' }} />
           </div>
         </header>
+
+        <LessonNavigator currentLesson={lesson} open={lessonMenuOpen} onOpenChange={setLessonMenuOpen} onSelect={chooseLesson} />
 
         <section className="lesson-hero">
           <div className="lesson-copy">
@@ -201,21 +203,8 @@ export function ImageLab() {
           </div>
         </section>
 
-        <section className="lesson-index" id="lessons">
-          <div className="section-heading"><div><span className="eyebrow">LESSON INDEX</span><h2>From one pixel to complete algorithms</h2></div><span>17 lessons</span></div>
-          <div className="lesson-grid">
-            {LESSONS.map((item) => <button className={technique === item.id ? 'active' : ''} onClick={() => chooseLesson(item.id)} key={item.id}><span>{item.number}</span><b>{item.shortTitle}</b><small>{item.category}</small></button>)}
-          </div>
-        </section>
-
         <footer><span>IMAGE LAB · All processing runs locally in your browser.</span><a href="https://github.com/opencv/opencv" target="_blank" rel="noreferrer"><Code2 size={14} /> Reference ecosystem</a></footer>
       </main>
-
-      {lessonDrawer && <div className="lesson-drawer open">
-        <div className="drawer-head"><b>Choose a lesson</b><button aria-label="Close lessons" onClick={() => setLessonDrawer(false)}><X /></button></div>
-        {LESSONS.map((item) => <button className={technique === item.id ? 'active' : ''} onClick={() => chooseLesson(item.id)} key={item.id}><span>{item.number}</span><div><b>{item.title}</b><small>{item.category}</small></div><ChevronRight size={15} /></button>)}
-      </div>}
-      {lessonDrawer && <button className="drawer-backdrop" aria-label="Close lessons" onClick={() => setLessonDrawer(false)} />}
       {toast && <div className="toast">{toast}</div>}
     </div>
   )
