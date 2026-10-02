@@ -1,15 +1,21 @@
 import { describe, expect, it } from 'vitest'
 import {
   adjustTone,
+  DEFAULT_SETTINGS,
   boxKernel,
-  convolve,
+  applyKernel,
   equalizeHistogram,
+  gammaCorrect,
   gaussianKernel,
   getPixel,
   grayscale,
   invert,
   isolateChannel,
+  laplacian,
   medianFilter,
+  morphology,
+  otsuThresholdValue,
+  resizeImage,
   sharpen,
   sobel,
   threshold,
@@ -41,6 +47,10 @@ describe('point operations', () => {
     expect([...invert(source).data]).toEqual([55, 155, 205, 137])
     expect([...adjustTone(source, 100, 2).data]).toEqual([255, 255, 200, 137])
   })
+
+  it('applies the documented power-law gamma convention', () => {
+    expect([...gammaCorrect(image(1, 1, [[64, 128, 255, 90]]), 2).data]).toEqual([16, 64, 255, 90])
+  })
 })
 
 describe('neighborhood filters', () => {
@@ -54,7 +64,16 @@ describe('neighborhood filters', () => {
 
   it('preserves a constant image through normalized convolution, including borders', () => {
     const constant = image(2, 2, Array.from({ length: 4 }, () => [80, 120, 160, 90]))
-    expect([...convolve(constant, boxKernel(3)).data]).toEqual([...constant.data])
+    expect([...applyKernel(constant, boxKernel(3)).data]).toEqual([...constant.data])
+  })
+
+  it('implements each advertised border policy explicitly', () => {
+    const row = image(2, 1, [[10, 10, 10, 255], [20, 20, 20, 255]])
+    const leftSample = [[1, 0, 0]]
+    expect(getPixel(applyKernel(row, leftSample, 'reflect'), 0, 0)[0]).toBe(10)
+    expect(getPixel(applyKernel(row, leftSample, 'replicate'), 0, 0)[0]).toBe(10)
+    expect(getPixel(applyKernel(row, leftSample, 'wrap'), 0, 0)[0]).toBe(20)
+    expect(getPixel(applyKernel(row, leftSample, 'constant'), 0, 0)[0]).toBe(0)
   })
 
   it('uses the channel median and rejects an isolated bright impulse', () => {
@@ -65,6 +84,12 @@ describe('neighborhood filters', () => {
   it('leaves uniform regions unchanged when sharpening', () => {
     const constant = image(2, 2, Array.from({ length: 4 }, () => [91, 91, 91, 255]))
     expect([...sharpen(constant, 1.5).data]).toEqual([...constant.data])
+  })
+
+  it('keeps a signed Laplacian internally and displays its absolute response', () => {
+    const impulse = image(3, 3, Array.from({ length: 9 }, (_, index) => index === 4 ? [100, 100, 100, 255] : [0, 0, 0, 255]))
+    expect(getPixel(laplacian(impulse), 1, 1)[0]).toBe(255)
+    expect(getPixel(laplacian(impulse), 1, 0)[0]).toBe(100)
   })
 })
 
@@ -93,5 +118,27 @@ describe('analysis operations', () => {
   it('handles a flat histogram without division by zero', () => {
     const source = image(1, 1, [[42, 42, 42, 111]])
     expect([...equalizeHistogram(source).data]).toEqual([42, 42, 42, 111])
+  })
+
+  it('selects the first maximum-separation threshold for a two-level image', () => {
+    const source = image(2, 2, [[50, 50, 50, 255], [50, 50, 50, 255], [100, 100, 100, 255], [100, 100, 100, 255]])
+    expect(otsuThresholdValue(source)).toBe(50)
+  })
+
+  it('dilates and erodes a binary neighborhood with a square structuring element', () => {
+    const impulse = image(3, 3, Array.from({ length: 9 }, (_, index) => index === 4 ? [255, 255, 255, 255] : [0, 0, 0, 255]))
+    const settings = { ...DEFAULT_SETTINGS, kernelSize: 3, borderMode: 'constant' as const }
+    expect([...morphology(impulse, { ...settings, morphologyOperation: 'dilate' }).data].filter((_, index) => index % 4 === 0)).toEqual(Array(9).fill(255))
+    expect([...morphology(impulse, { ...settings, morphologyOperation: 'erode' }).data].filter((_, index) => index % 4 === 0)).toEqual(Array(9).fill(0))
+  })
+
+  it('resizes with center-aligned nearest and bilinear sampling', () => {
+    const source = image(2, 1, [[0, 0, 0, 255], [200, 200, 200, 255]])
+    const nearest = resizeImage(source, 2, 'nearest')
+    const bilinear = resizeImage(source, 2, 'bilinear')
+    expect([nearest.width, nearest.height]).toEqual([4, 2])
+    expect([getPixel(nearest, 0, 0)[0], getPixel(nearest, 3, 0)[0]]).toEqual([0, 200])
+    expect(getPixel(bilinear, 1, 0)[0]).toBe(50)
+    expect(getPixel(bilinear, 2, 0)[0]).toBe(150)
   })
 })

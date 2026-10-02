@@ -1,36 +1,48 @@
-# Pixel Forge
+# Image Lab
 
-Pixel Forge is an interactive, browser-only image-processing lab. It connects each visual transformation to its formula, the source pixel values, and the resulting values.
+Image Lab is an interactive, browser-only course for understanding image processing through source pixels, two-dimensional neighborhoods, kernels, exact arithmetic, and visible results.
 
-## Included lessons
+## Curriculum
 
-- RGB channel isolation
-- Weighted and arithmetic-mean grayscale
-- Binary thresholding
-- Brightness and contrast
-- Inversion
-- Box, Gaussian, and median blur
-- Laplacian-style sharpening
-- Sobel edge detection
-- Histogram equalization
+The 17 lessons cover:
 
-Users can upload an image, inspect individual pixels, compare input and output, build a reorderable processing pipeline, and export the result. Images never leave the browser.
+- RGBA storage, RGB channels, and grayscale conversion
+- Manual and Otsu binary thresholding
+- Brightness, contrast, inversion, and gamma mapping
+- 4-neighbor, 8-neighbor, and square-window neighborhoods
+- Box, Gaussian, and median filtering
+- Sharpening, Sobel gradients, Laplacian response, and Canny edges
+- Histograms and histogram equalization
+- Binary morphology
+- Nearest-neighbor and bilinear resampling
 
-## Run locally
+Every lesson includes its general formula, a substituted calculation for the selected pixel, implementation assumptions, and a primary technical reference. Uploaded images stay in the browser.
+
+## Stack
+
+- pnpm
+- Next.js App Router with static export
+- React and strict TypeScript
+- Web Worker image processing
+- KaTeX equations
+- Vitest and Playwright
+
+## Development
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
-
-Then open the local address printed by Vite.
 
 ## Verification
 
 ```bash
-npm test
-npm run test:e2e
-npm run build
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm test:e2e
 ```
 
-The unit tests use hand-calculated fixtures for pixel math and filter behavior. The browser tests exercise desktop and mobile interactions.
+Or run the complete sequence with `pnpm verify`.
+
+The generated visual reference used for the redesign is retained at [`design/reference/image-lab-concept.png`](design/reference/image-lab-concept.png).
